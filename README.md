@@ -35,7 +35,7 @@ Unlike existing methods that demand large datasets or heavy computational resour
 - 🔥 **Low-resource breakthrough**: Trained on <80h singing data with a single NVIDIA RTX 3090 (≤6GB GPU memory, 11h training time).  
 - 🧩 **EVA module innovation**: Integrates pitch, energy, and phase features, with speaker loss and Speaker-F0 Predictor for better feature fusion.  
 - 🎶 **Dual-task support**: Natively achieves zero-shot singing voice conversion and voice super-resolution (44.1kHz output).  
-- 📊 **SOTA performance**: Outperforms SaMoye-SVC, LDM-SVC, and AudioSR in objective (STOI, NISQA) and subjective (NMOS, SMOS) metrics.  
+- 📊 **SOTA performance**: Outperforms SaMoye-SVC and AudioSR in objective (STOI, NISQA) and subjective (NMOS, SMOS) metrics.  
 - ⚡ **Efficient inference**: DPM-Solver++ with 10× acceleration (RTF=0.065) balances speed and quality.
 
 ## 📊 Model Architecture
