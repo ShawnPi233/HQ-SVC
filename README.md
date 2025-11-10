@@ -13,17 +13,14 @@ Official Repository of Paper: "Towards High-Quality Zero-Shot Singing Voice Conv
 
 ## 🗞 News
 
-- **[2026-XX-XX]** 🎉 Paper accepted by AAAI 2026.
-- **[2026-XX-XX]** 🎉 Official code and pre-trained models released.
-- **[2026-XX-XX]** 🎉 Online demo page launched.
-- **[2026-XX-XX]** 🎉 Extended support for English singing voice conversion.
+- **[2025-11-08]** 🎉 Paper accepted by AAAI 2026.
 
 ### 📅 Release Plan
-- [x] arXiv preprint
-- [x] Official code repository
-- [x] Pre-trained models (single GPU training)
-- [x] Online demo
-- [ ] Multi-language expansion (English, Japanese)
+- [ ] arXiv preprint
+- [ ] Online demo
+- [ ] Official code repository
+- [ ] Pre-trained models
+- [ ] Singing Voice Style Conversion 
 
 HQ-SVC is a **lightweight and efficient framework** for high-quality zero-shot singing voice conversion (SVC) in low-resource scenarios. It achieves disentanglement of content and speaker features via a unified decoupled codec, and enhances synthesis quality through multi-feature fusion and progressive optimization.
 
