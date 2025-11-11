@@ -37,10 +37,10 @@ We thank the open-source communities behind:
 
 ## Star History
 
-<a href="https://www.star-history.com/#anonymous/HQ-SVC&Date">
+<a href="https://www.star-history.com/ShawnPi233/HQ-SVC&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=anonymous/HQ-SVC&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=anonymous/HQ-SVC&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=anonymous/HQ-SVC&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ShawnPi233/HQ-SVC&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ShawnPi233/HQ-SVC&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ShawnPi233/HQ-SVC&type=Date" />
  </picture>
 </a>
