@@ -30,7 +30,7 @@ Unlike existing methods that demand large datasets or heavy computational resour
 
 ## 📊 Model Architecture
 
-![HQ-SVC Architecture](statics/figs/hq-svc-arch.png)  
+![HQ-SVC Architecture](statics/figs/hq-svc.png)  
 *The framework consists of 4 core components:*  
 1. **Decoupled Codec**: Uses frozen FACodec to extract disentangled content features and speaker embeddings.  
 2. **EVA Module**: Fuses pitch (RMVPE), energy, phase features, introduces speaker loss and Speaker-F0 Predictor.  
