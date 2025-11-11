@@ -28,15 +28,6 @@ Unlike existing methods that demand large datasets or heavy computational resour
 - 🎧 Dual capabilities: high-quality singing voice conversion + voice super-resolution
 - 🎯 Superior naturalness and speaker similarity compared to SOTA methods
 
-## 📊 Model Architecture
-
-![HQ-SVC Architecture](statics/figs/hq-svc.png)  
-*The framework consists of 4 core components:*  
-1. **Decoupled Codec**: Uses frozen FACodec to extract disentangled content features and speaker embeddings.  
-2. **EVA Module**: Fuses pitch (RMVPE), energy, phase features, introduces speaker loss and Speaker-F0 Predictor.  
-3. **Progressive Optimization**: Combines DDSP (harmonic/noise synthesis) and diffusion model (detail enhancement) to generate Mel spectrograms.  
-4. **Vocoder**: NSF-HiFiGAN converts Mel spectrograms + F0 into high-fidelity audio.
-
 ## 🙏 Acknowledgement
 We thank the open-source communities behind:
 - Codec & Feature Extraction: [FACodec](https://github.com/ju-zizhou/NaturalSpeech3), [RMVPE](https://github.com/Dream-High/HV_PE), [CAM++](https://github.com/wenet-e2e/CAM++)  
