@@ -36,11 +36,4 @@ We thank the open-source communities behind:
 - Datasets: [Opensinger](https://github.com/Multi-Singer/Opensinger), [M4Singer](https://github.com/M4Singer/M4Singer)
 
 ## Star History
-
-<a href="https://www.star-history.com/#ShawnPi233/HQ-SVC&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=#ShawnPi233/HQ-SVC&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=#ShawnPi233/HQ-SVC&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=#ShawnPi233/HQ-SVC&type=Date" />
- </picture>
-</a>
+[![Star History Chart](https://api.star-history.com/svg?repos=ShawnPi233/HQ-SVC&type=date&legend=top-left)](https://www.star-history.com/#ShawnPi233/HQ-SVC&type=date&legend=top-left)
