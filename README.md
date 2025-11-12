@@ -10,12 +10,13 @@ Official Repository of Paper: "Towards High-Quality Zero-Shot Singing Voice Conv
 
 ## 🗞 News
 
-- **[2025-11-08]** 🎉 Paper accepted by AAAI 2026.
-- **[2025-11-12]** 🎉 arXiv paper released.
+- **[2025-11-08]** 🎉 Paper accepted by AAAI 2026
+- **[2025-11-12]** 🎉 arXiv paper released
+- **[2025-11-12]** 🎉 Demo released
 
 ### 📅 Release Plan
 - [x] arXiv preprint
-- [ ] Online demo
+- [x] Online demo
 - [ ] Official code repository
 - [ ] Pre-trained models
 
