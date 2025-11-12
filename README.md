@@ -28,12 +28,5 @@ Unlike existing methods that demand large datasets or heavy computational resour
 - 🎧 Dual capabilities: high-quality singing voice conversion + voice super-resolution
 - 🎯 Superior naturalness and speaker similarity compared to SOTA methods
 
-## 🙏 Acknowledgement
-We thank the open-source communities behind:
-- Codec & Feature Extraction: [FACodec](https://github.com/ju-zizhou/NaturalSpeech3), [RMVPE](https://github.com/Dream-High/HV_PE), [CAM++](https://github.com/wenet-e2e/CAM++)  
-- Synthesis & Optimization: [DDSP](https://github.com/magenta/ddsp), [DiffSVC](https://github.com/openvpi/DiffSinger), [DPM-Solver++](https://github.com/LuChengTHU/dpm-solver)  
-- Vocoder: [NSF-HiFiGAN](https://github.com/openvpi/DiffSinger)  
-- Datasets: [Opensinger](https://github.com/Multi-Singer/Opensinger), [M4Singer](https://github.com/M4Singer/M4Singer)
-
 ## Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=ShawnPi233/HQ-SVC&type=date&legend=top-left)](https://www.star-history.com/#ShawnPi233/HQ-SVC&type=date&legend=top-left)
