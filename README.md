@@ -4,9 +4,8 @@ Official Repository of Paper: "Towards High-Quality Zero-Shot Singing Voice Conv
     <p>
     <!-- 若有logo可添加：<img src="path/to/logo.png" alt="HQ-SVC Logo" width="300"> -->
     </p>
-    <a href="https://arxiv.org/abs/xxxx.xxxx"><img src="https://img.shields.io/badge/arXiv-xxxx.xxxx-b31b1b.svg?logo=arxiv&logoColor=white" alt="arXiv"></a>
-    <a href="https://github.com/anonymous/HQ-SVC"><img src="https://img.shields.io/badge/Code-📦-green" alt="Code Repository"></a>
-    <a href="https://anonymous.github.io/HQ-SVC-Demo"><img src="https://img.shields.io/badge/Demos-🌐-blue" alt="Demos"></a>
+    <a href="https://arxiv.org/abs/2511.08496"><img src="https://img.shields.io/badge/arXiv-2511.08496-b31b1b.svg?logo=arxiv&logoColor=white" alt="arXiv"></a>
+    <a href="https://shawnpi233.github.io/HQ-SVC-demo"><img src="https://img.shields.io/badge/Demos-🌐-blue" alt="Demos"></a>
     <a href="README_zh.md"><img src="https://img.shields.io/badge/语言-简体中文-green" alt="简体中文"></a>
 </div>
 
