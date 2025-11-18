@@ -27,6 +27,18 @@ Unlike existing methods that demand large datasets or heavy computational resour
 - ⚡ Low-resource training (single consumer-grade GPU, <80h data)
 - 🎧 Dual capabilities: high-quality singing voice conversion + voice super-resolution
 - 🎯 Superior naturalness and speaker similarity compared to SOTA methods
+## 📜 Citation
+
+If you use HQ-SVC in your research, please cite our work:
+
+```bibtex
+@article{bai2025hq,
+  title={HQ-SVC: Towards High-Quality Zero-Shot Singing Voice Conversion in Low-Resource Scenarios},
+  author={Bai, Bingsong and Geng, Yizhong and Wang, Fengping and Wang, Cong and Guo, Puyuan and Gao, Yingming and Li, Ya},
+  journal={arXiv preprint arXiv:2511.08496},
+  year={2025}
+}
+```
 
 ## Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=ShawnPi233/HQ-SVC&type=date&legend=top-left)](https://www.star-history.com/#ShawnPi233/HQ-SVC&type=date&legend=top-left)
