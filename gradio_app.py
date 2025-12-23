@@ -112,7 +112,7 @@ def build_ui():
                 </div>
             </div>
         """)
-        gr.Markdown("# 🎸 HQ-SVC: SINGING VOICE CONVERSION 🍰")
+        gr.Markdown("# 🎸 HQ-SVC: SINGING VOICE CONVERSION AND SUPER-RESOLUTION 🍰")
         
         with gr.Row():
             with gr.Column():
