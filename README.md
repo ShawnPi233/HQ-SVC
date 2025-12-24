@@ -105,7 +105,7 @@ We thank the open-source communities behind:
 * **[DDSP-SVC](https://github.com/yxlllc/DDSP-SVC)**
 * **[Amphion](https://github.com/open-mmlab/Amphion)**
 * **[NaturalSpeech 3](https://speechresearch.github.io/naturalspeech3/)**
-* **[NSF-HIFAGAN](https://github.com/openvpi/vocoders)**
+* **[NSF-HIFIGAN](https://github.com/openvpi/vocoders)**
 * **[RMVPE](https://github.com/Dream-High/RMVPE)**
 
 ## ⭐️ Star History
