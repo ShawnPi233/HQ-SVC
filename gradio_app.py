@@ -67,7 +67,7 @@ def predict(source_audio, target_files, shift_key, adjust_f0):
             spk_ave = torch.stack(spk_list).mean(dim=0).squeeze().to(device)
             all_tar_f0 = np.concatenate(f0_list)
             TARGET_CACHE.update({"file_hash": current_hash, "spk_ave": spk_ave, "all_tar_f0": all_tar_f0})
-            status = "✅ Timbre Extracted"
+            status = "✅ VOICE CONVERTION"
 
         src_data = get_processed_file(source_audio, sr, encoder_sr, VOCODER, PREPROCESSORS["volume_extractor"], PREPROCESSORS["f0_extractor"], PREPROCESSORS["fa_encoder"], PREPROCESSORS["fa_decoder"], None, None, device=device)
         f0 = src_data['f0'].unsqueeze(0).to(device)
@@ -112,7 +112,7 @@ def build_ui():
                 </div>
             </div>
         """)
-        gr.Markdown("# 🎸 HQ-SVC: SINGING VOICE CONVERSION AND SUPER-RESOLUTION 🍰")
+        gr.Markdown("# 🎸 HQ-SVC: SINGING VOICE CONVERSION ＆ SUPER-RESOLUTION 🍰")
         
         with gr.Row():
             with gr.Column():
@@ -142,5 +142,4 @@ if __name__ == "__main__":
     
     print(">>> 界面启动成功。")
     
-    # 允许访问图片文件夹
     demo.launch(share=True, allowed_paths=[os.path.join(now_dir, "images")])
