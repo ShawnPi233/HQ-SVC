@@ -36,7 +36,12 @@ Unlike existing methods that demand large datasets or heavy computational resour
 - 🎯 Superior naturalness and speaker similarity compared to SOTA methods
 
 ## 🎸 Try Inference
-### 1. Download Environment 下载环境
+### 1. Download Codes and Environment 下载代码和环境
+```bash
+git clone https://github.com/ShawnPi233/HQ-SVC.git
+cd HQ-SVC
+```
+
 ```bash
 wget -c https://huggingface.co/shawnpi/HQ-SVC/resolve/main/environment.tar.gz
 ```
@@ -57,8 +62,8 @@ source venv/bin/activate
 
 ### 4. Download Pretrained Models 下载权重
 ```bash
-export HF_HUB_ENABLE_HF_TRANSFER=0 
-huggingface-cli download shawnpi/HQ-SVC --include "utils/pretrain/*" --local-dir . --max-workers 1
+export HF_HUB_ENABLE_HF_TRANSFER=0
+huggingface-cli download shawnpi/HQ-SVC --include "utils/pretrain/*" --local-dir . --local-dir-use-symlinks False
 ```
 
 ### 5.Running 运行
