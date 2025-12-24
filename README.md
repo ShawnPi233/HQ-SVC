@@ -66,7 +66,7 @@ export HF_HUB_ENABLE_HF_TRANSFER=0
 huggingface-cli download shawnpi/HQ-SVC --include "utils/pretrain/*" --local-dir . --local-dir-use-symlinks False
 ```
 
-### 5.Running 运行
+### 5. Running 运行
 ```bash
 python gradio_app.py
 ```
@@ -98,5 +98,5 @@ If you use HQ-SVC in your research, please cite our work:
 }
 ```
 
-## Star History
+## ⭐️ Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=ShawnPi233/HQ-SVC&type=date&legend=top-left)](https://www.star-history.com/#ShawnPi233/HQ-SVC&type=date&legend=top-left)
