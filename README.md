@@ -64,6 +64,7 @@ source venv/bin/activate
 ```bash
 export HF_HUB_ENABLE_HF_TRANSFER=0
 huggingface-cli download shawnpi/HQ-SVC --include "utils/pretrain/*" --local-dir . --local-dir-use-symlinks False
+huggingface-cli download shawnpi/HQ-SVC --include "utils/Amphion/*" --local-dir . --local-dir-use-symlinks False
 ```
 
 ### 5. Running 运行

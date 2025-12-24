@@ -160,7 +160,6 @@ def get_style_embed(style_prompt, tokenizer, model):
     return outputs[-1]
 
 def load_facodec(device):
-    # sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Amphion'))
     from Amphion.models.codec.ns3_codec import FACodecEncoderV2, FACodecDecoderV2
     fa_encoder = FACodecEncoderV2(
         ngf=32,
@@ -185,8 +184,8 @@ def load_facodec(device):
         use_gr_residual_f0=True,
         use_gr_residual_phone=True,
     )
-    encoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_encoder_v2.bin")
-    decoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_decoder_v2.bin")
+    encoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_encoder_v2.bin", local_dir="utils/pretrain")
+    decoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_decoder_v2.bin", local_dir="utils/pretrain")
 
     fa_encoder.load_state_dict(torch.load(encoder_ckpt))
     fa_decoder.load_state_dict(torch.load(decoder_ckpt))
