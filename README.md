@@ -36,10 +36,11 @@ Unlike existing methods that demand large datasets or heavy computational resour
 - 🎯 Superior naturalness and speaker similarity compared to SOTA methods
 
 ## 🎸 Try Inference
-### 1. Download Codes and Environment 下载代码和环境
+### 1. Download Codes and Environment（下载代码和环境）
 
-* 仅在Linux平台、CUDA >= 11.8 的环境上测试通过
-* Windows 用户可以使用 WSL（Ubuntu） 进行部署运行
+* Tested only on Linux platforms with CUDA >= 11.8 (仅在 Linux 平台、CUDA >= 11.8 的环境上测试通过)
+
+* Windows users can use WSL (Ubuntu) for deployment and execution (Windows 用户可以使用 WSL (Ubuntu) 进行部署运行)
 
 ```bash
 git clone https://github.com/ShawnPi233/HQ-SVC.git
@@ -53,30 +54,31 @@ wget -c https://huggingface.co/shawnpi/HQ-SVC/resolve/main/environment.tar.gz
 wget -c https://hf-mirror.com/shawnpi/HQ-SVC/resolve/main/environment.tar.gz # 可选镜像源
 ```
 
-### 2. Unzip Environment 解压环境
+### 2. Unzip Environment（解压环境）
 ```bash
 mkdir -p venv
 tar -xzf environment.tar.gz -C venv
 ```
 
-### 3. Activate Environment 激活环境
+### 3. Activate Environment（激活环境）
 ```bash
 source venv/bin/activate
 ```
 
-### 4. Download Pretrained Models 下载权重
+### 4. Download Pretrained Models（下载权重）
 ```bash
 export HF_HUB_ENABLE_HF_TRANSFER=0
 huggingface-cli download shawnpi/HQ-SVC --include "utils/pretrain/*" --local-dir . --local-dir-use-symlinks False
 ```
 
-### 5. Running 运行
+### 5. Running（运行）
 ```bash
 python gradio_app.py
 ```
 
-* 如果报错 Caught signal 11 (Segmentation fault: address not mapped to object at address (nil)) 
-* 请执行以下代码后再启动上述代码
+* If you encounter the error `Caught signal 11 (Segmentation fault: address not mapped to object at address (nil))` (如果报错 `Caught signal 11 (Segmentation fault: address not mapped to object at address (nil))`)
+* Please execute the following code before running the above code (请执行以下代码后再启动上述代码)
+
 ```bash
 unset LD_LIBRARY_PATH
 ``` 
