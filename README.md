@@ -39,7 +39,7 @@ Unlike existing methods that demand large datasets or heavy computational resour
 ### 1. Download Codes and Environment 下载代码和环境
 
 * 仅在Linux平台、CUDA >= 11.8 的环境上测试通过
-* Windows 用户可以使用 WSL 进行部署运行
+* Windows 用户可以使用 WSL（Ubuntu） 进行部署运行
 
 ```bash
 git clone https://github.com/ShawnPi233/HQ-SVC.git
