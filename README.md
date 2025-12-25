@@ -7,6 +7,8 @@ Official Repository of Paper: "Towards High-Quality Zero-Shot Singing Voice Conv
     <a href="https://arxiv.org/abs/2511.08496"><img src="https://img.shields.io/badge/arXiv-2511.08496-b31b1b.svg?logo=arxiv&logoColor=white" alt="arXiv"></a>
     <a href="https://shawnpi233.github.io/HQ-SVC-demo"><img src="https://img.shields.io/badge/Demos-🌐-blue" alt="Demos"></a>
     <a href="https://huggingface.co/shawnpi/HQ-SVC"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Models%20-%20Access-orange" alt="Models Access"></a>
+    <a href="https://github.com/ShawnPi233/HQ-SVC" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/GitHub-Repository-blue?logo=github" alt="GitHub Repository"></a>
 </div>
 
 ## 🗞 News
