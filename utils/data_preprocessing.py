@@ -184,8 +184,11 @@ def load_facodec(device):
         use_gr_residual_f0=True,
         use_gr_residual_phone=True,
     )
-    encoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_encoder_v2.bin", local_dir="utils/pretrain")
-    decoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_decoder_v2.bin", local_dir="utils/pretrain")
+    # encoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_encoder_v2.bin", local_dir="utils/pretrain")
+    # decoder_ckpt = hf_hub_download(repo_id="amphion/naturalspeech3_facodec", filename="ns3_facodec_decoder_v2.bin", local_dir="utils/pretrain")
+
+    encoder_ckpt = "utils/pretrain/ns3_facodec_encoder_v2.bin"
+    decoder_ckpt = "utils/pretrain/ns3_facodec_decoder_v2.bin"
 
     fa_encoder.load_state_dict(torch.load(encoder_ckpt))
     fa_decoder.load_state_dict(torch.load(decoder_ckpt))
