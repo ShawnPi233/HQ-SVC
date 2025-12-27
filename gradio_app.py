@@ -7,25 +7,47 @@ import soundfile as sf
 import tempfile
 import hashlib
 import requests
+import socket
 from huggingface_hub import snapshot_download
 
-# ================= 1. 环境与自动同步逻辑 =================
+# ================= 1. 环境与智能同步逻辑 (支持纯离线) =================
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
 
 def sync_model_files():
+    """智能同步：优先保证离线可用，仅在在线且文件缺失时强制同步"""
     repo_id = "shawnpi/HQ-SVC"
-    print(f">>> 正在同步模型权重 ({repo_id})...")
+    
+    # 定义核心权重路径（根据你的 YAML 配置对齐）
+    model_pth = "utils/pretrain/250000_step_val_loss_0.50.pth"
+    vocoder_dir = "utils/pretrain/nsf_hifigan/model"
+    rmvpe_path = "utils/pretrain/rmvpe/model.pt"
+    # 检查本地核心文件是否已存在
+    local_exists = os.path.exists(model_pth) and os.path.exists(vocoder_dir)
+    
+    if local_exists:
+        print(">>> [离线模式] 检测到本地权重已完整")
+        return
+
+    # 如果本地文件缺失，则尝试网络同步
+    print(">>> [同步模式] 本地权重不完整，正在检测网络以获取权重...")
+
     try:
         snapshot_download(
             repo_id=repo_id,
-            allow_patterns=["utils/pretrain/*", "config.json"], 
+            allow_patterns=["utils/pretrain/*", "config.json"],
             local_dir=".",
-            local_dir_use_symlinks=False
+            local_dir_use_symlinks=False,
+            # 如果依然失败（如镜像站也连不上），则尝试仅使用本地缓存
+            resume_download=True 
         )
-        print(">>> 权重同步完成")
+        print(">>> 权重同步完成。")
     except Exception as e:
-        print(f">>> 同步失败: {e}")
+        if local_exists:
+            print(f">>> 同步失败但本地已有文件，将尝试继续运行。错误: {e}")
+        else:
+            print(f">>> [严重错误] 同步失败且本地缺少权重，程序可能无法运行: {e}")
 
+# 在一切开始前执行智能同步
 sync_model_files()
 
 # ================= 2. 路径与模型加载逻辑 =================
@@ -52,9 +74,12 @@ def initialize_models(config_path):
     ARGS = load_config(config_path)
     ARGS.config = config_path
     device = ARGS.device
+    
+    # 实例化模型
     VOCODER = Vocoder(vocoder_type='nsf-hifigan', vocoder_ckpt='utils/pretrain/nsf_hifigan/model', device=device)
     NET_G = load_hq_svc(mode='infer', device=device, model_path=ARGS.model_path, args=ARGS)
     NET_G.eval()
+    
     fa_encoder, fa_decoder = load_facodec(device)
     PREPROCESSORS = {
         "fa_encoder": fa_encoder, "fa_decoder": fa_decoder, 
@@ -63,22 +88,14 @@ def initialize_models(config_path):
         "content_encoder": None, "spk_encoder": None
     }
 
-# ================= 3. 推理逻辑 (增强鲁棒性) =================
+# ================= 3. 推理逻辑 (保持鲁棒性) =================
 def predict(source_audio, target_files, shift_key, adjust_f0):
     global TARGET_CACHE
-    
-    # --- 鲁棒性检查 1: 检查源音频是否上传完毕 ---
     if source_audio is None:
-        return "⚠️ 系统提示：未检测到源音频。请确认已选择文件，并等待上传进度条走完后再重新转换。", None
+        return "⚠️ 系统提示：未检测到源音频。请确保文件已上传完毕。", None
 
-    # --- 鲁棒性检查 2: 检查文件路径有效性 ---
     if not os.path.exists(source_audio):
-        return "❌ 系统错误：音频文件传输中断，请刷新页面重新上传音频。", None
-
-    # --- 鲁棒性检查 3: 检查音频格式 (防止上传了奇怪的文件) ---
-    valid_exts = ['.wav', '.mp3', '.flac', '.m4a', '.ogg', '.opus']
-    if not any(source_audio.lower().endswith(ext) for ext in valid_exts):
-        return f"❌ 系统错误：不支持该文件格式。请上传 {', '.join(valid_exts)} 格式的音频。", None
+        return "❌ 系统错误：找不到音频文件，请重新上传。", None
 
     sr, encoder_sr, device = ARGS.sample_rate, ARGS.encoder_sr, ARGS.device
 
@@ -98,18 +115,14 @@ def predict(source_audio, target_files, shift_key, adjust_f0):
             else:
                 spk_list, f0_list = [], []
                 for f in (target_files[:20] if target_files else []):
-                    # 再次校验目标参考音频是否有效
                     f_path = f.name if hasattr(f, 'name') else f
                     if not f_path or not os.path.exists(f_path): continue
-                    
                     t_data = get_processed_file(f_path, sr, encoder_sr, VOCODER, PREPROCESSORS["volume_extractor"], PREPROCESSORS["f0_extractor"], PREPROCESSORS["fa_encoder"], PREPROCESSORS["fa_decoder"], None, None, device=device)
                     if t_data: 
                         spk_list.append(t_data['spk'])
                         f0_list.append(t_data['f0_origin'])
                 
-                if not spk_list: 
-                    return "❌ 终端提示：目标参考音频上传失败或格式不正确，请重新上传。", None
-                
+                if not spk_list: return "❌ 终端提示：参考音频处理失败。", None
                 spk_ave = torch.stack(spk_list).mean(dim=0).squeeze().to(device)
                 all_tar_f0 = np.concatenate(f0_list)
                 TARGET_CACHE.update({"file_hash": current_hash, "spk_ave": spk_ave, "all_tar_f0": all_tar_f0})
@@ -132,9 +145,8 @@ def predict(source_audio, target_files, shift_key, adjust_f0):
             sf.write(out_p, wav_g.squeeze().cpu().numpy(), 44100)
             return f"{status} | Pitch Shifted: {shift_key}", out_p
     except Exception as e:
-        return f"❌ 推理运行出错：{str(e)}。请尝试刷新页面并重新上传音频。", None
+        return f"❌ 推理运行出错：{str(e)}", None
 
-# ================= 4. UI 界面 =================
 custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 :root { --font: 'Press Start 2P', cursive !important; }
@@ -151,15 +163,10 @@ button.primary { background-color: #ff69b4 !important; color: #fff !important; }
 footer { display: none !important; }
 """
 
+# ================= 4. UI 界面 =================
 def build_ui():
     with gr.Blocks(css=custom_css, title="HQ-SVC Pixel Pro") as demo:
-        gr.HTML("""
-            <div style="display: flex; justify-content: center; margin: 20px 0;">
-                <div style="border: 4px solid #000; box-shadow: 8px 8px 0px #000;">
-                    <img src="file/images/kon-new.gif" style="max-width: 400px; width: 100%;">
-                </div>
-            </div>
-        """)
+        gr.HTML('<div style="text-align:center; margin:20px 0;"><img src="file/images/kon-new.gif" style="max-width:400px; border:4px solid #000; box-shadow:8px 8px 0px #000;"></div>')
         gr.Markdown("# 🎸HQ-SVC: SINGING VOICE CONVERSION AND SUPER-RESOLUTION🍰")
         
         with gr.Row():
@@ -176,19 +183,16 @@ def build_ui():
                 result_audio = gr.Audio(label="OUTPUT (44.1kHz HQ)")
 
         run_btn.click(predict, [src_audio, tar_files, key_shift, auto_f0], [status_box, result_audio])
-
     return demo
 
 if __name__ == "__main__":
     config_p = "configs/hq_svc_infer.yaml"
     if os.path.exists(config_p):
         initialize_models(config_p)
-    else:
-        print(f"警告: 找不到配置文件 {config_p}。")
-        
+    
     demo = build_ui()
     temp_dir = tempfile.gettempdir()
     demo.launch(
         share=True,
-        allowed_paths=[os.path.join(now_dir, "images"), now_dir, temp_dir]
+        allowed_paths=[os.path.join(os.path.dirname(__file__), "images"), os.path.dirname(__file__), temp_dir]
     )
