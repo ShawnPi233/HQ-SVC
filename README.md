@@ -53,7 +53,7 @@ cd HQ-SVC
 wget -c https://huggingface.co/shawnpi/HQ-SVC/resolve/main/environment.tar.gz
 ```
 ```bash
-wget -c https://hf-mirror.com/shawnpi/HQ-SVC/resolve/main/environment.tar.gz # 可选镜像源
+wget -c https://hf-mirror.com/shawnpi/HQ-SVC/resolve/main/environment.tar.gz # Optional mirror
 ```
 
 ### 2. Unzip Environment（解压环境）
@@ -67,15 +67,10 @@ tar -xzf environment.tar.gz -C venv
 source venv/bin/activate
 ```
 
-### 4. Download Pretrained Models（下载权重）
+### 4. Running（运行）
 ```bash
-export HF_HUB_ENABLE_HF_TRANSFER=0
-huggingface-cli download shawnpi/HQ-SVC --include "utils/pretrain/*" --local-dir . --local-dir-use-symlinks False
-```
-
-### 5. Running（运行）
-```bash
-python gradio_app.py
+export HF_ENDPOINT=https://hf-mirror.com # Optional mirror
+python gradio_app.py 
 ```
 
 * If you encounter the error `Caught signal 11 (Segmentation fault: address not mapped to object at address (nil))` (如果报错 `Caught signal 11 (Segmentation fault: address not mapped to object at address (nil))`)
