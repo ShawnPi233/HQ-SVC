@@ -80,6 +80,7 @@ python gradio_app.py
 unset LD_LIBRARY_PATH
 ``` 
 
+Access at http://127.0.0.1:7860/
 
 
 <div align="center">
