@@ -165,12 +165,32 @@ footer { display: none !important; }
 
 # ================= 4. UI 界面 =================
 def build_ui():
+    # 获取 GIF 的绝对路径，确保 Gradio 能够精准定位文件
+    gif_path = os.path.join(now_dir, "images", "kon-new.gif")
+    
+    # 检查文件是否存在，如果不存在则不显示或显示文字
+    if os.path.exists(gif_path):
+        # 注意：在 HTML 中，Gradio 要求本地文件路径前缀为 "file/"
+        img_html = f'''
+            <div style="display: flex; justify-content: center; margin: 20px 0;">
+                <div style="border: 4px solid #000; box-shadow: 8px 8px 0px #000; background: #fff; line-height: 0;">
+                    <img src="file/{gif_path}" style="max-width: 400px; width: 100%; display: block;">
+                </div>
+            </div>
+        '''
+    else:
+        # 兜底方案：如果图片丢了，显示一个像素风的占位符
+        img_html = '<div style="text-align:center; padding: 20px; color: #FFFF00;">[ 🎸 IMAGE NOT FOUND ]</div>'
+
     with gr.Blocks(css=custom_css, title="HQ-SVC Pixel Pro") as demo:
-        gr.HTML('<div style="text-align:center; margin:20px 0;"><img src="file/images/kon-new.gif" style="max-width:400px; border:4px solid #000; box-shadow:8px 8px 0px #000;"></div>')
+        # 渲染 GIF 区域
+        gr.HTML(img_html)
+        
         gr.Markdown("# 🎸HQ-SVC: SINGING VOICE CONVERSION AND SUPER-RESOLUTION🍰")
         
         with gr.Row():
             with gr.Column():
+                # 之前讨论过的：增加文件类型限制，提高鲁棒性
                 src_audio = gr.Audio(label="STEP 1: SOURCE VOICE", type="filepath")
                 tar_files = gr.File(label="STEP 2: TARGET REFERENCE", file_count="multiple")
                 with gr.Row():
@@ -179,10 +199,12 @@ def build_ui():
                 run_btn = gr.Button("🎤 START CONVERSION!", variant="primary")
             
             with gr.Column():
-                status_box = gr.Textbox(label="SYSTEM TERMINAL", interactive=False)
+                # 系统终端：显示推理状态或报错信息
+                status_box = gr.Textbox(label="SYSTEM TERMINAL", interactive=False, placeholder="Waiting for input...")
                 result_audio = gr.Audio(label="OUTPUT (44.1kHz HQ)")
 
         run_btn.click(predict, [src_audio, tar_files, key_shift, auto_f0], [status_box, result_audio])
+        
     return demo
 
 if __name__ == "__main__":
