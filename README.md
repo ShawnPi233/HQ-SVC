@@ -102,11 +102,16 @@ Access at http://127.0.0.1:7860/
 If you use HQ-SVC in your research, please cite our work:
 
 ```bibtex
-@article{bai2025hq,
-  title={HQ-SVC: Towards High-Quality Zero-Shot Singing Voice Conversion in Low-Resource Scenarios},
-  author={Bai, Bingsong and Geng, Yizhong and Wang, Fengping and Wang, Cong and Guo, Puyuan and Gao, Yingming and Li, Ya},
-  journal={arXiv preprint arXiv:2511.08496},
-  year={2025}
+@inproceedings{bai2026hqsvc,
+  author    = {Bingsong Bai and Yizhong Geng and Fengping Wang and Cong Wang and Puyuan Guo and Yingming Gao and Ya Li},
+  title     = {HQ-SVC: Towards High-Quality Zero-Shot Singing Voice Conversion in Low-Resource Scenarios},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {40},
+  number    = {36},
+  pages     = {30013--30021},
+  year      = {2026},
+  doi       = {10.1609/aaai.v40i36.40249},
+  url       = {https://doi.org/10.1609/aaai.v40i36.40249}
 }
 ```
 
