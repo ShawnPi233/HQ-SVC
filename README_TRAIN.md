@@ -4,7 +4,11 @@ This branch adds training entry points for the HQ-SVC recipe described in arXiv:
 
 ## Preprocess
 
-Prepare a file list of 44.1 kHz wav files, then extract FACodec, mel, speaker, F0, and volume features:
+The training recipe (FACodec-distill + FiLM + InfoNCE) expects both FACodec content/timbre features and SSL content features. Preprocessing requires **two steps**:
+
+### Step 1: FACodec features
+
+Extracts `vq_post.npy` (256-dim FACodec content), `spk.npy` (256-dim FACodec timbre), and `prosody.npy`:
 
 ```bash
 python utils/data_preprocess_v2_beta.py \
@@ -14,6 +18,21 @@ python utils/data_preprocess_v2_beta.py \
   --encoder_sr 16000 \
   --config facodec_only \
   --content_encoder FACodec \
+  --f0_interpolate 0
+```
+
+### Step 2: SSL + acoustic features
+
+Extracts `ssl.npy` (768-dim contentvec SSL), `sv.npy` (192-dim speaker verification), `f0.npy`, `volume.npy`, and `mel_44k.npy`:
+
+```bash
+python utils/data_preprocess_v2_beta.py \
+  -f data/singing_filelist/singing_train_file_list.txt \
+  -t 4 \
+  --sr 44100 \
+  --encoder_sr 16000 \
+  --config all \
+  --content_encoder contentvec768l12 \
   --f0_interpolate 0
 ```
 
