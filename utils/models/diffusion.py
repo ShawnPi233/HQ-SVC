@@ -131,7 +131,7 @@ class GaussianDiffusion(nn.Module):
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(self, x, t, cond):
-        noise_pred = self.denoise_fn(x, t, cond=cond)
+        noise_pred = self.denoise_fn(x, t, cond)
         x_recon = self.predict_start_from_noise(x, t=t, noise=noise_pred)
 
         x_recon.clamp_(-1., 1.)
@@ -153,7 +153,7 @@ class GaussianDiffusion(nn.Module):
         a_t = extract(self.alphas_cumprod, t, x.shape)
         a_prev = extract(self.alphas_cumprod, torch.max(t - interval, torch.zeros_like(t)), x.shape)
         
-        noise_pred = self.denoise_fn(x, t, cond=cond)
+        noise_pred = self.denoise_fn(x, t, cond)
         x_prev = a_prev.sqrt() * (x / a_t.sqrt() + (((1 - a_prev) / a_prev).sqrt()-((1 - a_t) / a_t).sqrt()) * noise_pred)
         return x_prev
         
@@ -176,11 +176,11 @@ class GaussianDiffusion(nn.Module):
             return x_pred
 
         noise_list = self.noise_list
-        noise_pred = self.denoise_fn(x, t, cond=cond)
+        noise_pred = self.denoise_fn(x, t, cond)
 
         if len(noise_list) == 0:
             x_pred = get_x_pred(x, noise_pred, t)
-            noise_pred_prev = self.denoise_fn(x_pred, max(t - interval, 0), cond=cond)
+            noise_pred_prev = self.denoise_fn(x_pred, max(t - interval, 0), cond)
             noise_pred_prime = (noise_pred + noise_pred_prev) / 2
         elif len(noise_list) == 1:
             noise_pred_prime = (3 * noise_pred - noise_list[-1]) / 2
