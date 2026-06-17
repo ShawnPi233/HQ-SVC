@@ -69,8 +69,9 @@ mode: [film_mlp, infonce, pred_f0, facodec_distill, no_style, ortho_loss]
 k_step_max: 100
 infer_speedup: 10
 infer_method: 'dpm-solver'
-# guidance_scale: 2.0
-# drop_rate: 0.1
+guidance_scale: null
+drop_rate: 0.0
+model_paths: null
 
 # logging settings
 num_log_audio: 5

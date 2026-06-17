@@ -61,6 +61,10 @@ use_tfm: True
 use_ssa: False
 mode: [film_mlp, infonce, pred_f0, facodec_distill, no_style, ortho_loss]
 
+guidance_scale: null
+drop_rate: 0.0
+model_paths: null
+
 # diffusion
 k_step_max: 100
 infer_speedup: 10
