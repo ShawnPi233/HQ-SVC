@@ -1,0 +1,76 @@
+# env
+model_name: v2.0.0
+device: 'cuda'
+gpu_ids: '0'
+# device_ids: [1, 2, 3, 4]
+num_gpus: 1
+
+# Content Encoder (none for FACodec)
+content_encoder: 'contentvec768l12' # 'hubertsoft', 'hubertbase', 'hubertbase768', 'contentvec', 'contentvec768' or 'contentvec768l12' or 'cnhubertsoftfish'
+cnhubertsoft_gate: 10
+encoder_sample_rate: 16000
+encoder_hop_size: 320
+encoder_out_channels: 768 # 256 if using 'hubertsoft'
+encoder_ckpt: pretrain/contentvec/checkpoint_best_legacy_500.pt
+speaker_encoder: 'campp' # 'ecapa2', 'ecapa-tdnn'(none for FACodec)
+
+# training settings
+data_path: 'data/singing_filelist'
+file_list_path:  'data/singing_filelist/singing_train_file_list.txt' # 'data/m4singer/filelist.txt' 'data/processed_libritts_p_files_list_total.txt'
+ckpt_dir: 'results'
+hifigan_config_path: 'configs/hifigan_config.json'
+resume_training: false
+resume_ckpt: null
+resume_log_dir: null
+finetune_ckpt: null
+save_full_checkpoint: true
+# bert_adaptor_ckpt: 'results/bert_hidden_adaptor/400000_step_val_loss_0.00.pth'
+sample_rate: 44100
+batch_size: 64
+hop_size: 512
+wav_sec: 2
+seed: 1234
+epochs: 100000
+max_steps: 500000
+# max_steps: 50000
+fast_data_load: false 
+steps_per_save: 50000
+# steps_per_save: 500
+max_model_saves: 10
+k_fold: 0
+validation_ratio: 0.01
+
+# optimizer settings
+learning_rate: 0.00015 # 
+adam_b1: 0.9
+adam_b2: 0.999
+# bert_adaptor_lr: 0.00002
+
+nsf: 1 # use nsf-hifigan
+# demo_num: 500
+demo_num: 0
+vol_aug: False
+pitch_aug: False
+spk_aug: False
+spk_replace_rate: 0.0
+# spk_mix_rate: 0.0
+spa_aug: False
+use_text: False
+use_prompt_label: False
+use_ssim_loss: False
+use_mi_loss: False
+use_style_loss: False
+use_spk_id: True
+use_tfm: True
+use_ssa: False #self-supervised speaker augmentation
+mode: [film_mlp, infonce, pred_f0, facodec_distill, no_style, ortho_loss]
+
+# diffussion
+k_step_max: 100
+infer_speedup: 10
+infer_method: 'dpm-solver'
+# guidance_scale: 2.0
+# drop_rate: 0.1
+
+# logging settings
+num_log_audio: 5

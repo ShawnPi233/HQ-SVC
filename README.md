@@ -21,7 +21,11 @@ Official Repository of Paper: "Towards High-Quality Zero-Shot Singing Voice Conv
 - [x] Online demo
 - [x] Inference codes
 - [x] Pre-trained models
-- [ ] Training codes
+- [x] Training codes on the `train` branch
+
+## 🏋️ Training
+
+Training code for the InfoNCE + FiLM + FACodec HQ-SVC recipe is available in this branch. See [README_TRAIN.md](README_TRAIN.md) for preprocessing, from-scratch training, and resume-training commands.
 
 ## ✨ New features
 - [ ] Singing Style control

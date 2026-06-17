@@ -6,8 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 from .pcmer import PCmer
-from utils.utils import load_ckpt, repeat_expand_2d
+from utils.utils import load_ckpt
 from .mi_estimators import *
+import random
 # from utils.gradient_reversal import GradientReversal
 
 def split_to_dict(tensor, tensor_splits):
@@ -2078,10 +2079,10 @@ class TransformerTimbreExtractor(nn.Module):
         # )
     def forward(self, x):
         # Input x shape: (batch_size, input_dim=256)
-        while len(x.shape) < 3:
-            x = x.unsqueeze(0) # (time_steps, batch_size, input_dim)
+        if len(x.shape) < 3:
+            x = x.unsqueeze(1)
         # Permute input to match Transformer input shape (time_steps, batch_size, input_dim)
-        # x = x.permute(1, 0, 2)  # Shape: (time_steps, batch_size, input_dim)
+        x = x.permute(1, 0, 2)  # Shape: (time_steps, batch_size, input_dim)
         
         # 1. Transformer encoder layers
         x = self.transformer(x)  # Shape: (time_steps, batch_size, input_dim)
@@ -2310,10 +2311,10 @@ class TransformerEncoder(nn.Module):
 #             # self.style_embed = self.sty_emb(self.style_embed)
             
 #             # self.timbre_embed +=  self.timbre_units
-#             # # timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
-#             # timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+#             # # self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+#             # self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
 #             # condition_style = torch.concat([
-#             #                 timbre_f0, 
+#             #                 self.timbre_f0, 
 #             #                 self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
 #             #                 self.phase_embed(phase / np.pi), 
 #             #                 self.volume_embed(volume)], 
@@ -2323,10 +2324,10 @@ class TransformerEncoder(nn.Module):
 #             n_frame = f0.shape[1]
 #             x = x[:, :n_frame, :]
 #             self.timbre_embed = self.timbre_extractor(spk)
-#             timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+#             self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
 #             self.style_embed = spk - self.timbre_embed
 #             condition_style = torch.concat([
-#                 # timbre_f0, 
+#                 # self.timbre_f0, 
 #                 self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
 #                 self.phase_embed(phase / np.pi), 
 #                 self.volume_embed(volume)], 
@@ -2351,8 +2352,8 @@ class TransformerEncoder(nn.Module):
             
 #             self.timbre_embed = self.spk_embed(spk)
 #             self.style_embed = None
-#             timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
-#             x = x + timbre_f0 \
+#             self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+#             x = x + self.timbre_f0 \
 #                   + self.phase_embed(phase / np.pi) \
 #                   + self.volume_embed(volume)    
                     
@@ -2363,160 +2364,140 @@ class TransformerEncoder(nn.Module):
         
 #         # if self.use_tfm and not is_infer:
 #         #     return controls, x, self.timbre_embed, mi_loss
-#         return controls, x, timbre_f0, self.timbre_embed, self.style_embed
+#         return controls, x, self.timbre_f0, self.timbre_embed, self.style_embed
 
-class AdALIN(nn.Module):
-    def __init__(self, feature_dim = 256, eps=1e-5):
+# class EnhancedSpeakerCombination(nn.Module):
+#     def __init__(self, input_dim=256, num_speakers=96, hidden_dim=512):
+#         """
+#         使用隐藏层和非线性激活生成权重
+#         :param input_dim: 输入特征维度
+#         :param num_speakers: 输出权重维度
+#         :param hidden_dim: 隐藏层维度
+#         """
+#         super(EnhancedSpeakerCombination, self).__init__()
+#         self.fc1 = nn.Linear(input_dim, hidden_dim)  # 增大参数量
+#         self.activation = nn.ReLU()  # 非线性激活函数
+#         self.fc2 = nn.Linear(hidden_dim, num_speakers)  # 映射到权重维度
+    
+#     def forward(self, spk_features):
+#         """
+#         前向传播
+#         :param spk_features: 输入的说话人特征张量 (形状 [batch_size, num_speakers, feature_dim])
+#         :return: 线性组合特征
+#         """
+#         batch_size, num_speakers, feature_dim = spk_features.shape
+#         spk_avg = spk_features.mean(dim=1)  # 平均所有说话人的特征向量
+#         hidden = self.activation(self.fc1(spk_avg))  # 隐藏层
+#         w = torch.softmax(self.fc2(hidden), dim=1)  # 归一化权重
+#         combined_feature = torch.bmm(w.unsqueeze(1), spk_features).squeeze(1)  # 线性组合
+#         return combined_feature, w
+
+class EnhancedSpeakerCombination(nn.Module):
+    def __init__(self, input_dim=256, hidden_dim=256):
+        super(EnhancedSpeakerCombination, self).__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, 1)
+        self.lrelu = nn.LeakyReLU()
+        self.reset_parameters()  # 初始化权重
+
+    def reset_parameters(self):
+        # Xavier 初始化
+        torch.nn.init.xavier_uniform_(self.fc1.weight)
+        torch.nn.init.xavier_uniform_(self.fc2.weight)
+
+    def forward(self, spk_features, spk_id_embs):
         """
-        AdALIN: Combines Adaptive Layer Normalization and Adaptive Instance Normalization for [b, t, d] input.
-        :param feature_dim: Dimensionality of the feature map (d).
-        :param eps: Small constant to prevent division by zero during normalization.
+        前向传播
+        :param spk_features: 输入的说话人特征张量 (形状 [batch_size, speaker_number, input_dim])
+        :return: 加权特征和权重矩阵
         """
-        super().__init__()
-        self.eps = eps
-        # Scale and bias for layer normalization
-        self.ln_scale_fc = nn.Linear(feature_dim, feature_dim)
-        self.ln_bias_fc = nn.Linear(feature_dim, feature_dim)
-        # Scale and bias for instance normalization
-        self.in_scale_fc = nn.Linear(feature_dim, feature_dim)
-        self.in_bias_fc = nn.Linear(feature_dim, feature_dim)
+        batch_size, input_dim = spk_features.shape
+        speaker_number = spk_id_embs.shape[0]
+        # 平均所有说话人特征向量作为全局上下文
         
-    def forward(self, x, condition):
+        # spk_avg = spk_features.mean(dim=1)  # (batch_size, input_dim)
+
+        # 通过隐藏层处理全局上下文
+        hidden = self.lrelu(self.fc1(spk_features))  # (batch_size, hidden_dim)
+        
+        # 初始化权重矩阵 w
+        # w = torch.zeros(batch_size, speaker_number, device=spk_features.device)  # 权重初始化
+        w = torch.empty(batch_size, speaker_number, device=spk_features.device).normal_(mean=0.5, std=0.1)  # 正态分布权重初始化，适用于较深网络
+
+        # 针对每个说话人特征计算权重
+        for i in range(speaker_number):
+            spk_id_emb = spk_id_embs[i, :]  # 取第 i 个说话人特征 (batch_size, input_dim)
+            weight_i = self.fc2(hidden + spk_id_emb)  # (batch_size, 1)
+            w[:, i] = weight_i.squeeze(-1)  # 将权重存入第 i 列
+
+        # 权重归一化
+        w = torch.softmax(w, dim=1)  # 保证权重和为 1，形状 [batch_size, speaker_number]
+
+        # 使用权重对特征进行线性组合
+        combined_feature = torch.matmul(w, spk_id_embs) # (batch_size, input_dim)
+
+        return combined_feature, w  # 返回加权特征和权重矩阵
+
+class MDNSpeakerCombination(nn.Module):
+    def __init__(self, input_dim=256, hidden_dim=256, num_mixtures=5):
+        super(MDNSpeakerCombination, self).__init__()
+        self.hidden_layer = nn.Linear(input_dim, hidden_dim)
+        self.mdn_means = nn.Linear(hidden_dim, num_mixtures * input_dim)  # 混合分布的均值
+        self.mdn_stds = nn.Linear(hidden_dim, num_mixtures * input_dim)  # 混合分布的标准差
+        self.mdn_weights = nn.Linear(hidden_dim, num_mixtures)  # 混合分布的权重
+        self.lrelu = nn.LeakyReLU()
+        self.num_mixtures = num_mixtures
+        self.input_dim = input_dim
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.hidden_layer.weight)
+        nn.init.xavier_uniform_(self.mdn_means.weight)
+        nn.init.xavier_uniform_(self.mdn_stds.weight)
+        nn.init.xavier_uniform_(self.mdn_weights.weight)
+
+    def forward(self, spk_features, spk_id_embs):
         """
-        :param x: Input tensor of shape [b, t, d].
-        :param condition: Conditioning tensor of shape [b, t, d].
-        :return: Adaptively normalized tensor of shape [b, t, d].
+        前向传播，使用 MDN 生成加权特征
+        :param spk_features: (batch_size, input_dim) 输入说话人特征
+        :param spk_id_embs: (speaker_number, input_dim) 说话人嵌入
+        :return: 采样的加权特征和权重分布
         """
-        # Compute mean and variance for instance normalization across the time axis
-        mean_in = x.mean(dim=1, keepdim=True)  # Mean over time steps
-        var_in = x.var(dim=1, keepdim=True, unbiased=False)
-        x_in = (x - mean_in) / torch.sqrt(var_in + self.eps)
+        batch_size, _ = spk_features.shape
+        speaker_number, _ = spk_id_embs.shape
 
-        # Compute mean and variance for layer normalization across the feature axis
-        mean_ln = x.mean(dim=2, keepdim=True)  # Mean over feature dimension
-        var_ln = x.var(dim=2, keepdim=True, unbiased=False)
-        x_ln = (x - mean_ln) / torch.sqrt(var_ln + self.eps)
+        # 隐藏层处理输入特征
+        hidden = self.lrelu(self.hidden_layer(spk_features))  # (batch_size, hidden_dim)
 
-        # Compute adaptive parameters
-        scale_ln = self.ln_scale_fc(condition)
-        bias_ln = self.ln_bias_fc(condition)
-        scale_in = self.in_scale_fc(condition)
-        bias_in = self.in_bias_fc(condition)
+        # MDN 输出：均值、标准差和权重
+        means = self.mdn_means(hidden).view(batch_size, self.num_mixtures, self.input_dim)  # (batch_size, num_mixtures, input_dim)
+        stds = F.softplus(self.mdn_stds(hidden).view(batch_size, self.num_mixtures, self.input_dim)) + 1e-6  # 避免std=0
+        weights = F.softmax(self.mdn_weights(hidden), dim=-1)  # (batch_size, num_mixtures)
 
-        # Combine adaptive parameters
-        out_ln = x_ln * scale_ln + bias_ln
-        out_in = x_in * scale_in + bias_in
+        # 采样：从混合高斯分布中抽取样本
+        gaussian_samples = means + stds * torch.randn_like(stds)  # (batch_size, num_mixtures, input_dim)
+        weighted_samples = torch.einsum('bm,bmi->bi', weights, gaussian_samples)  # 加权求和 (batch_size, input_dim)
 
-        # Combine outputs (you can introduce weighting here if needed)
-        return out_ln + out_in
+        # 对所有说话人特征加权
+        spk_combined_feature = torch.matmul(weighted_samples, spk_id_embs)  # (batch_size, input_dim)
 
+        return spk_combined_feature, weights
 
+class F0Predictor(nn.Module):
+    def __init__(self, input_dim=256, emb_dim=128):
+        super(F0Predictor, self).__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(input_dim, emb_dim),
+            nn.SiLU(),
+            nn.Linear(emb_dim, 1)
+        )
+        
+    def forward(self, spk_emb):
+        f0 = self.mlp(spk_emb)
+        return f0
+    
 class Unit2ControlFacV5A(nn.Module):
-    '''Differentiable Digital Signal Processing Hybrid Style Prompt Model
-    Mode: [film_mlp, infonce, pred_f0]
-    '''
-    def __init__(
-            self,
-            input_channel,
-            output_splits,
-            use_pitch_aug=False,
-            use_tfm=True, # 针对 film_mlp 默认为 True
-            pcmer_norm=False,
-            mode=None):
-        super().__init__()
-        self.output_splits = output_splits
-        self.mode = mode or ['film_mlp', 'infonce', 'pred_f0']
-        self.use_tfm = use_tfm
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # --- 1. 核心音色提取器 (film_mlp 专用) ---
-        self.timbre_extractor = nn.Sequential(
-            nn.Linear(256, 512),
-            nn.SiLU(),
-            nn.Linear(512, 256)
-        )
-
-        # --- 2. 特征嵌入层 (film_mlp 专用 Sequential 结构) ---
-        self.f0_embed = self._build_mlp_embed()
-        self.phase_embed = self._build_mlp_embed()
-        self.volume_embed = self._build_mlp_embed()
-
-        # --- 3. 融合层 (FiLM 专用) ---
-        # 输入通道 = 256 (timbre_f0) + 256 (style) + 256 (phase) + 256 (volume) = 1024
-        self.fuse_conv = nn.Conv1d(in_channels=1024, out_channels=256, kernel_size=1)
-        self.film = FiLM(256)
-
-        # --- 4. 基础组件 ---
-        if use_pitch_aug:
-            self.aug_shift_embed = nn.Linear(1, 256, bias=False)
-        
-        # 卷积编码栈
-        self.stack = nn.Sequential(
-            nn.Conv1d(input_channel, 256, 3, 1, 1),
-            nn.GroupNorm(4, 256),
-            nn.LeakyReLU(),
-            nn.Conv1d(256, 256, 3, 1, 1)
-        ) 
-
-        # 解码器与输出
-        self.decoder = PCmer(
-            num_layers=3, num_heads=8, dim_model=256, pcmer_norm=pcmer_norm
-        )
-        self.norm = nn.LayerNorm(256)
-        self.n_out = sum(output_splits.values())
-        self.dense_out = weight_norm(nn.Linear(256, self.n_out))
-
-    def _build_mlp_embed(self):
-        return nn.Sequential(
-            nn.Linear(1, 256),
-            nn.SiLU(),
-            nn.Linear(256, 256)
-        )
-
-    def forward(self, units, f0, phase, volume, spk, spk_id=None, aug_shift=None, is_infer=False):
-        batch_size = units.shape[0]
-        n_frame = f0.shape[1]
-
-        # 1. 基础单元特征提取
-        x = self.stack(units.transpose(1, 2)).transpose(1, 2)
-        x = x[:, :n_frame, :]
-
-        # 2. 音色与风格分离
-        # spk: [B, 256] -> timbre_embed: [B, 1, 256]
-        timbre_embed = self.timbre_extractor(spk).view(batch_size, 1, -1)
-        style_embed = (spk.view(batch_size, 1, -1) - timbre_embed)
-
-        # 3. 计算各类 Condition 特征
-        # f0 处理: [B, n_frame, 1] -> [B, n_frame, 256]
-        f0_condition = (1 + f0 / 700).log()
-        timbre_f0 = self.f0_embed(f0_condition) + timbre_embed
-        
-        phase_feat = self.phase_embed(phase / np.pi)
-        volume_feat = self.volume_embed(volume)
-
-        # 4. FiLM 融合逻辑 (硬编码 4-feat 拼接)
-        # 拼接顺序: [音色+F0, 风格, 相位, 音量]
-        style_expanded = style_embed.expand(-1, n_frame, -1)
-        condition_style = torch.cat([timbre_f0, style_expanded, phase_feat, volume_feat], dim=-1)
-        
-        # [B, T, 1024] -> [B, 1024, T] -> Conv -> [B, 256, T] -> [B, T, 256]
-        condition_style = self.fuse_conv(condition_style.permute(0, 2, 1)).transpose(1, 2)
-        
-        # 应用 FiLM 调制
-        x = self.film(x, condition_style)
-
-        # 5. Transformer 解码
-        x = self.decoder(x)
-        x = self.norm(x)
-        
-        # 6. 最终映射
-        e = self.dense_out(x)
-        controls = split_to_dict(e, self.output_splits)
-        
-        # 返回模式所需的完整元组 (适配 film_mlp / pred_f0)
-        return controls, x, timbre_f0, timbre_embed, style_embed
-
-class Unit2ControlFacV6(nn.Module):
     '''Differentiable Digital Signal Processing Hybrid Style Prompt Model'''
     def __init__(
             self,
@@ -2525,166 +2506,94 @@ class Unit2ControlFacV6(nn.Module):
             use_pitch_aug=False,
             use_tfm=False,
             pcmer_norm=False,
-            mode=None):
+            mode = None):
         super().__init__()
         self.output_splits = output_splits
+        self.f0_embed = nn.Linear(1, 256)
+        self.phase_embed = nn.Linear(1, 256)
+        self.volume_embed = nn.Linear(1, 256)
+        
+        # self.f0_embed = nn.Sequential(
+        #     nn.Linear(1, 256),
+        #     nn.SiLU(),
+        #     nn.Linear(256, 256)
+        # )
+        
+        # self.phase_embed = nn.Sequential(
+        #     nn.Linear(1, 256),
+        #     nn.SiLU(),
+        #     nn.Linear(256, 256)
+        # )
+        
+        # self.volume_embed = nn.Sequential(
+        #     nn.Linear(1, 256),
+        #     nn.SiLU(),
+        #     nn.Linear(256, 256)
+        # )
+        
+        self.spk_id_embed_layer = nn.Embedding(num_embeddings=200, embedding_dim=256)
         self.mode = mode
         self.use_tfm = use_tfm
-        self.control_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-        self.mix_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-        self.falsetto_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-        self.breathy_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-        self.pharyngeal_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-        self.glissando_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-        self.vibrato_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
+        # if self.use_tfm:
+        #     self.timbre_extractor = TransformerTimbreExtractor()
+        #     self.fuse_conv = nn.Conv1d(in_channels=256 * 5, out_channels=256, kernel_size=1)
+        
+        if self.use_tfm:
+            # self.timbre_extractor = nn.Sequential(
+            #     nn.Linear(256, 256),
+            #     nn.SiLU(),
+            #     nn.Linear(256, 256)
+            # )
             
-        if not self.use_tfm:
-            self.spk_head = nn.Linear(256, 256)
-
-        if 'adaln_mlp_old' in self.mode:
-            self.timbre_extractor = TransformerTimbreExtractor()  
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            self.timbre_extractor = nn.Linear(256, 256)
+            # self.timbre_extractor = TransformerTimbreExtractor(input_dim=128, emb_dim=256)
+            # self.content_extractor = TransformerEncoder(input_dim=128, emb_dim=256)
             
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            # self.timbre_extractor = TransformerTimbreExtractor()
             
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 3, out_channels=256, kernel_size=1)
-            self.film = AdaLN(256)
+            # self.tim_emb = nn.Sequential(
+            #     nn.Linear(128, 256),
+            #     nn.SiLU(),
+            #     nn.Linear(256, 256)
+            # )
             
-        elif 'film_mlp' in self.mode:
-            self.timbre_extractor = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.SiLU(),
-                nn.Linear(512, 256)
-            )
-                         
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            # self.sty_emb = nn.Sequential(
+            #     nn.Linear(128, 256),
+            #     nn.SiLU(),
+            #     nn.Linear(256, 256)
+            # )
             
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            self.fuse_conv = nn.Conv1d(in_channels=256 * 4, out_channels=256, kernel_size=1)
             
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            if 'adain' in self.mode:
+                self.adain = AdaIN(256)
+            elif 'adaln' in self.mode:
+                self.adaln = AdaLN(256)
             
-            self.style_head = nn.Sequential(
-                nn.Embedding(num_embeddings=10, embedding_dim=256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            # if 'f0_pred' in self.mode:
+            #     self.f0_predictor = F0Predictor()
+            # self.film = FiLM(256)
             
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 5, out_channels=256, kernel_size=1)
-            self.film = FiLM(256)
-
-        elif 'adaln_mlp' in self.mode:
-            self.timbre_extractor = TransformerTimbreExtractor()
-                         
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            # 
             
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
+            self.spk_combination = EnhancedSpeakerCombination(input_dim=256, hidden_dim=256)
             
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
             
-            self.style_head = nn.Sequential(
-                nn.Embedding(num_embeddings=10, embedding_dim=256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 5, out_channels=256, kernel_size=1)
-            self.film = FiLM(256)
-                       
-        elif 'adalin' in self.mode:
-            self.timbre_extractor = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.SiLU(),
-                nn.Linear(512, 256)
-            )
-            self.f0_head = nn.Linear(1, 256)
-            self.phase_head = nn.Linear(1, 256)
-            self.volume_head = nn.Linear(1, 256)
-            self.style_head = nn.Embedding(num_embeddings=10, embedding_dim=256)
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 5, out_channels=256, kernel_size=1)
-            self.fuse = AdALIN(256)
-            
-        elif 'add_mlp' in self.mode:
-            self.timbre_extractor = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.SiLU(),
-                nn.Linear(512, 256)
-            )
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            self.style_head = nn.Sequential(
-                nn.Embedding(num_embeddings=10, embedding_dim=256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            # self.style_merge = nn.Linear(256 * 5, 256)
         else:
-            self.timbre_extractor = TransformerTimbreExtractor()
-            self.f0_head = nn.Linear(1, 256)
-            self.phase_head = nn.Linear(1, 256)
-            self.volume_head = nn.Linear(1, 256)
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 5, out_channels=256, kernel_size=1)
-            self.fuse = FiLM(256)
-            # self.style_head = nn.Embedding(num_embeddings=10, embedding_dim=256)
+            self.spk_embed = nn.Linear(256, 256)
+            # self.spk_embed = nn.Sequential(
+            #     nn.Linear(256, 256),
+            #     nn.SiLU(),
+            #     nn.Linear(256, 256)
+            # )
 
         # self.fuse_nn = nn.Linear(1024, 256)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         if use_pitch_aug:
-            self.aug_shift_head = nn.Linear(1, 256, bias=False)
+            self.aug_shift_embed = nn.Linear(1, 256, bias=False)
         else:
-            self.aug_shift_head = None
+            self.aug_shift_embed = None
             
         # conv in stack
         self.stack = nn.Sequential(
@@ -2712,132 +2621,175 @@ class Unit2ControlFacV6(nn.Module):
         
         self.ca = CrossAttention(feature_dim=256, temperature=1.0)
         self.fusion = FusionModel(x_dim=256, style_feature_dim=256, num_conditions=64)
+        
         # self.grl = GradientReversal(alpha=1)
-    def forward(self, units, f0, phase, volume, spk, style_id, aug_shift = None, is_infer = False):
+    def forward(self, units, f0, phase, volume, spk, spk_id = None, aug_shift = None, is_infer = False):
         '''
         input: 
             B x n_frames x n_unit
         return: 
             dict of B x n_frames x feat
         '''
+
+        # x = self.stack(units.transpose(1,2)).transpose(1,2)
+        # n_frame = f0.shape[1]
+        # x = x[:, :n_frame, :]
+        
+        # if self.aug_shift_embed is not None and aug_shift is not None:
+        #     x = x + self.aug_shift_embed(aug_shift / 5)
+            
+        # if self.use_tfm:
+        #     self.timbre_embed = self.timbre_extractor(spk)
+        #     self.style_embed = spk - self.timbre_embed
+        #     x = torch.concat([x, 
+        #                     self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1), 
+        #                     self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
+        #                     self.phase_embed(phase / np.pi), 
+        #                     self.volume_embed(volume)], 
+        #                     dim=-1)
+        #     x = self.fuse_conv(x.permute(0,2,1)).permute(0,2,1)
         
         if self.use_tfm:
+
+            # self.style_embed = self.style_extractor(units)
+            
+            # # self.timbre_embed = self.timbre_extractor(spk) + spk
+            # self.timbre_embed = self.timbre_extractor(spk)
+            
+            # # self.style_embed = spk - self.timbre_embed
+            
+            # # self.timbre_embed = self.timbre_embed + spk
+            
+            # # self.style_embed = self.style_extractor(spk) + self.style_extractor(units)
+            # self.style_embed = self.style_extractor(spk)
+            # self.style_embed = self.grl(self.style_embed)
+            
+            # # if not is_infer:
+            # #     # mi_loss = mutual_information_loss(self.timbre_embed.detach(), self.style_embed)
+            # #     mi_loss = 0
+
+            
+            # units_dim = units.shape[-1]
+            # self.timbre_units = units[:, :, :units_dim//2]
+            # self.content_units = units[:, :, units_dim//2:]
+            
+            # self.timbre_units = self.timbre_extractor(self.timbre_units)
+            # self.content_units = self.content_extractor(self.content_units)
+            
+            # x = self.stack(self.content_units.transpose(1,2)).transpose(1,2)
+            # n_frame = f0.shape[1]
+            # x = x[:, :n_frame, :]
+            
+            # spk_dim = spk.shape[-1]
+            # self.timbre_embed = spk[:, :spk_dim//2]
+            # self.style_embed = spk[:, spk_dim//2:]
+            
+            # self.timbre_embed = self.tim_emb(self.timbre_embed)
+            # self.style_embed = self.sty_emb(self.style_embed)
+            
+            # self.timbre_embed +=  self.timbre_units
+            # # self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+            # self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+            # condition_style = torch.concat([
+            #                 self.timbre_f0, 
+            #                 self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
+            #                 self.phase_embed(phase / np.pi), 
+            #                 self.volume_embed(volume)], 
+            #                 dim=-1)
             
             x = self.stack(units.transpose(1,2)).transpose(1,2)
             n_frame = f0.shape[1]
             x = x[:, :n_frame, :]
             
-            self.timbre_embed = self.timbre_extractor(spk)
-            self.style_embed = spk - self.timbre_embed
-            timbre_f0 = self.f0_head((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+            # if spk.shape[-1] == 512:
+            #     tar_spk = spk[:,:256]
+            #     src_spk = spk[:,256:]
+            #     self.timbre_embed = self.timbre_extractor(tar_spk)
+            #     self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+            #     self.src_timbre = self.timbre_extractor(src_spk)
+            #     self.style_embed = src_spk - self.src_timbre
+            # else:
             
-            bs, length, _ = style_id.size()
-            if length < n_frame:
-                style_id = repeat_expand_2d(style_id.squeeze(0).T, n_frame).T.unsqueeze(0)
-            else:
-                style_id = style_id[:, :n_frame, :]
-            
-            style_id_embed = torch.zeros((bs, n_frame, 256), device=style_id.device)
-            
-            style_embs = [
-                self.control_emb,
-                self.mix_emb,
-                self.falsetto_emb,
-                self.breathy_emb,
-                self.pharyngeal_emb,
-                self.glissando_emb,
-                self.vibrato_emb,
-            ]
-            
-            # 对每个风格特征进行嵌入并相加
-            for i, layer in enumerate(style_embs):
-                # 获取当前风格特征的索引
-                style_indices = style_id[:, :, i].long()  # 将值为1的序号映射为0到6
-                # 获取嵌入结果
-                embedded = layer(style_indices)
-                # 将嵌入结果相加
-                style_id_embed += embedded
-            # style_id_embed /= 7
+            # self.timbre_embed = self.timbre_extractor(spk)
             # self.style_embed = spk - self.timbre_embed
-            # style_id_embed = self.style_head(style_id)
-            if 'adaln_mlp_old' in self.mode:
-                condition_style = torch.concat([
-                    self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
-                    style_id_embed[:, :n_frame, :],
-                    self.phase_head(phase / np.pi), 
-                    self.volume_head(volume)], 
-                    dim=-1)
-                condition_style = self.fuse_conv(condition_style.permute(0,2,1)).permute(0,2,1)
-                x = self.film(x, condition_style)
-                # x = self.fuse(x, condition_style)
             
-            elif 'film_mlp' in self.mode:
-                timbre_f0 = self.f0_head((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
-                condition_style = torch.concat([
-                                timbre_f0, 
-                                self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
-                                style_id_embed,
-                                self.phase_head(phase / np.pi), 
-                                self.volume_head(volume)], 
-                                dim=-1)
-                condition_style = self.fuse_conv(condition_style.permute(0,2,1)).permute(0,2,1)
-                x = self.film(x, condition_style)
-        
-            elif 'adaln_mlp' in self.mode:
-                timbre_f0 = self.f0_head((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
-                condition_style = torch.concat([
-                                timbre_f0, 
-                                self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
-                                style_id_embed,
-                                self.phase_head(phase / np.pi), 
-                                self.volume_head(volume)], 
-                                dim=-1)
-                condition_style = self.fuse_conv(condition_style.permute(0,2,1)).permute(0,2,1)
-                x = self.film(x, condition_style)
+            # self.timbre_embed  = self.timbre_extractor(spk) + spk
+            # if not is_infer and spk_id is not None:
+            #     if random.random() < 0.8:
+            #         self.timbre_embed  += self.spk_embed(spk_id.to(self.device))
+            # else:
+            #     if spk_id is not None:
+            #         self.timbre_embed  += self.spk_embed(spk_id.to(self.device))
             
-            elif 'add_mlp' in self.mode:
-                  
-                condition_style = timbre_f0 \
-                                  + self.style_embed.unsqueeze(1).expand(-1, n_frame, -1) \
-                                  + self.phase_head(phase / np.pi) \
-                                  + self.volume_head(volume) \
-                                  + style_id_embed
-                x = x + condition_style
-                  
-                # condition_style = timbre_f0 \
-                #                   + self.style_embed.unsqueeze(1).expand(-1, n_frame, -1) \
-                #                   + self.phase_head(phase / np.pi) \
-                #                   + self.volume_head(volume) \
-                #                   + style_id_embed.unsqueeze(1).expand(-1, n_frame, -1)
-                # x = x + condition_style
-                
-            elif 'add_mlp_wo_f0' in self.mode:
-                condition_style = self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) \
-                                  + self.phase_head(phase / np.pi) \
-                                  + style_id_embed
-                x = x + condition_style
+            if 'spk_combine' in self.mode:
+                spk_id_embs = []
+                speaker_num = 96
+                spk_ids = torch.arange(1, speaker_num + 1, device=self.device)
+                spk_id_embs = self.spk_id_embed_layer(spk_ids)  
+
+                if not is_infer:
+                    if random.random() < 0.5:
+                        self.timbre_embed  = self.spk_id_embed_layer(spk_id.to(self.device))
+                    else:
+                        self.timbre_embed, w = self.spk_combination(spk, spk_id_embs)
+                else:
+                    self.timbre_embed, w = self.spk_combination(spk, spk_id_embs)
             else:
-                condition_style = torch.concat([
-                        timbre_f0, 
-                        self.style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
-                        self.phase_head(phase / np.pi), 
-                        self.volume_head(volume)], 
-                        dim=-1)
-                condition_style = self.fuse_conv(condition_style.permute(0,2,1)).permute(0,2,1)
-                x = self.fuse(x, condition_style)
+                self.timbre_embed = self.timbre_extractor(spk)
+            
+            if 'adaln' in self.mode:
+                x = torch.concat([
+                    x, 
+                    self.f0_embed((1 + f0 / 700).log()), 
+                    self.phase_embed(phase / np.pi), 
+                    self.volume_embed(volume)], 
+                    dim=-1)
+                x = self.fuse_conv(x.permute(0,2,1)).permute(0,2,1)
+                x = self.adaln(x, self.timbre_embed)
                 
+            elif 'adain' in self.mode:
+                x = torch.concat([
+                    x, 
+                    self.f0_embed((1 + f0 / 700).log()), 
+                    self.phase_embed(phase / np.pi), 
+                    self.volume_embed(volume)], 
+                    dim=-1)
+                x = self.fuse_conv(x.permute(0,2,1))
+                x = self.adain(x, self.timbre_embed).permute(0,2,1)
+                
+            elif 'add' in self.mode:
+                x = x + self.f0_embed((1 + f0 / 700).log())\
+                    + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) \
+                    + self.phase_embed(phase / np.pi) \
+                    + self.volume_embed(volume)  
+            
+            # x = self.film(x, condition_style)
+            # x = x + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) \
+            #       + self.f0_embed((1 + f0 / 700).log()) \
+            #       + self.phase_embed(phase / np.pi) \
+            #       + self.volume_embed(volume)
+                  
+            
         else:
             x = self.stack(units.transpose(1,2)).transpose(1,2)
             n_frame = f0.shape[1]
             x = x[:, :n_frame, :]
             
-            self.timbre_embed = self.spk_head(spk)
+            # if self.aug_shift_embed is not None and aug_shift is not None:
+            #     x = x + self.aug_shift_embed(aug_shift / 5)
+            # self.timbre_embed = self.spk_embed(spk.unsqueeze(1).expand(-1, n_frame, -1))
+            # x = x + self.f0_embed((1 + f0 / 700).log()) \
+            #       + self.timbre_embed \
+            #       + self.phase_embed(phase / np.pi) \
+            #       + self.volume_embed(volume)
+            
+            self.timbre_embed = self.spk_embed(spk)
             # self.style_embed = None
-            timbre_f0 = self.f0_head((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
-            x = x + timbre_f0 \
-                  + self.phase_head(phase / np.pi) \
-                  + self.volume_head(volume)    
-                    
+            self.timbre_f0 = self.f0_embed((1 + f0 / 700).log()) + self.timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+            x = x + self.timbre_f0 \
+                  + self.phase_embed(phase / np.pi) \
+                  + self.volume_embed(volume)    
+            
         x = self.decoder(x)
         x = self.norm(x)
         e = self.dense_out(x)
@@ -2845,344 +2797,15 @@ class Unit2ControlFacV6(nn.Module):
         
         # if self.use_tfm and not is_infer:
         #     return controls, x, self.timbre_embed, mi_loss
-        if 'adaln_mlp' in self.mode:
-            return controls, x, timbre_f0, self.timbre_embed, self.style_embed
+        
+        if 'timbre_f0' in self.mode:
+            self.timbre_embed = self.timbre_embed + self.f0_embed((1 + f0 / 700).log()).mean(1).squeeze(1)
+        
+        # if 'f0_pred' in self.mode:
+        #     f0_pred = self.f0_predictor(self.timbre_embed)
+        #     return controls, x, self.timbre_embed, f0_pred
+        
         return controls, x, self.timbre_embed
-
-
-class Unit2ControlFacV6_beta(nn.Module):
-    '''Differentiable Digital Signal Processing Hybrid Style Prompt Model'''
-    def __init__(
-            self,
-            input_channel,
-            output_splits,
-            use_pitch_aug=False,
-            use_tfm=False,
-            pcmer_norm=False,
-            mode=None):
-        super().__init__()
-        self.output_splits = output_splits
-        self.mode = mode
-        self.use_tfm = use_tfm
-        if 'no_style' not in self.mode:
-            self.control_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-            self.mix_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-            self.falsetto_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-            self.breathy_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-            self.pharyngeal_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-            self.glissando_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-            self.vibrato_emb = nn.Embedding(num_embeddings=2, embedding_dim=256, padding_idx=0)
-            
-        if not self.use_tfm:
-            self.spk_head = nn.Linear(256, 256)
-            
-        if 'ssl' in self.mode:
-            self.timbre_head = nn.Linear(192, 256)
-        elif 'facodec_distill' in self.mode:
-            # First SSL head with added non-linearity and dropout
-            self.ssl_head1 = nn.Sequential(
-                nn.Linear(256, 768),
-                nn.SiLU(),
-                nn.Dropout(p=0.1)  # Dropout to prevent overfitting
-            )
-            
-            # Second SSL head with added non-linearity and normalization
-            self.ssl_head2 = nn.Sequential(
-                nn.Linear(768, 256),
-                nn.ReLU(),
-                nn.LayerNorm(256)  # Layer normalization for stable training
-            )
-            
-            # Timbre head with two layers and added non-linearity
-            self.timbre_head1 = nn.Sequential(
-                nn.Linear(256, 512),  # Increase the dimension for better expressiveness
-                nn.SiLU(),
-                nn.Dropout(p=0.1),    # Dropout to prevent overfitting
-                nn.Linear(512, 192)
-            )
-            
-            self.timbre_head2 = nn.Sequential(
-                nn.Linear(192, 256),
-                nn.SiLU(),
-                nn.LayerNorm(256)  # Normalization for stable training
-            )
-            # self.ssl_head1 = nn.Linear(256, 768)
-            # self.ssl_head2 = nn.Linear(768, 256)
-            # self.timbre_head1 = nn.Linear(256, 192)
-            # self.timbre_head2 = nn.Linear(192, 256)
-            
-        if 'adaln_mlp_old' in self.mode:
-            self.timbre_extractor = TransformerTimbreExtractor()  
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 3, out_channels=256, kernel_size=1)
-            self.film = AdaLN(256)
-            
-        elif 'add_mlp' in self.mode:
-            self.timbre_extractor = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.SiLU(),
-                nn.Linear(512, 256)
-            )
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            self.style_head = nn.Sequential(
-                nn.Embedding(num_embeddings=10, embedding_dim=256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-        ) 
-        elif 'film_mlp' in self.mode:
-            self.timbre_extractor = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.SiLU(),
-                nn.Linear(512, 256)
-            )
-                         
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.style_head = nn.Sequential(
-                nn.Embedding(num_embeddings=10, embedding_dim=256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 4, out_channels=256, kernel_size=1)
-            self.fuse = FiLM(256)
-
-        elif 'adaln_mlp' in self.mode:
-            self.timbre_extractor = TransformerTimbreExtractor()
-                         
-            self.f0_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.phase_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.volume_head = nn.Sequential(
-                nn.Linear(1, 256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.style_head = nn.Sequential(
-                nn.Embedding(num_embeddings=10, embedding_dim=256),
-                nn.SiLU(),
-                nn.Linear(256, 256)
-            )
-            
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 4, out_channels=256, kernel_size=1)
-            self.fuse = FiLM(256)
-                       
-        elif 'adalin' in self.mode:
-            self.timbre_extractor = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.SiLU(),
-                nn.Linear(512, 256)
-            )
-            self.f0_head = nn.Linear(1, 256)
-            self.phase_head = nn.Linear(1, 256)
-            self.volume_head = nn.Linear(1, 256)
-            self.style_head = nn.Embedding(num_embeddings=10, embedding_dim=256)
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 4, out_channels=256, kernel_size=1)
-            self.fuse = AdALIN(256)
-            
-            # self.style_merge = nn.Linear(256 * 5, 256)
-        else:
-            self.timbre_extractor = TransformerTimbreExtractor()
-            self.f0_head = nn.Linear(1, 256)
-            self.phase_head = nn.Linear(1, 256)
-            self.volume_head = nn.Linear(1, 256)
-            self.fuse_conv = nn.Conv1d(in_channels=256 * 4, out_channels=256, kernel_size=1)
-            self.fuse = FiLM(256)
-            # self.style_head = nn.Embedding(num_embeddings=10, embedding_dim=256)
-
-        # self.fuse_nn = nn.Linear(1024, 256)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-        if use_pitch_aug:
-            self.aug_shift_head = nn.Linear(1, 256, bias=False)
-        else:
-            self.aug_shift_head = None
-            
-        # conv in stack
-        self.stack = nn.Sequential(
-                nn.Conv1d(input_channel, 256, 3, 1, 1),
-                nn.GroupNorm(4, 256),
-                nn.LeakyReLU(),
-                nn.Conv1d(256, 256, 3, 1, 1)) 
-
-        # transformer
-        self.decoder = PCmer(
-            num_layers=3,
-            num_heads=8,
-            dim_model=256,
-            dim_keys=256,
-            dim_values=256,
-            residual_dropout=0.1,
-            attention_dropout=0.1,
-            pcmer_norm=pcmer_norm)
-        self.norm = nn.LayerNorm(256)
-
-        # out
-        self.n_out = sum([v for k, v in output_splits.items()])
-        self.dense_out = weight_norm(
-            nn.Linear(256, self.n_out))
-        
-        self.ca = CrossAttention(feature_dim=256, temperature=1.0)
-        self.fusion = FusionModel(x_dim=256, style_feature_dim=256, num_conditions=64)
-        # self.grl = GradientReversal(alpha=1)
-    def forward(self, units, f0, phase, volume, spk, style_id, aug_shift = None, is_infer = False):
-        '''
-        input: 
-            B x n_frames x n_unit
-        return: 
-            dict of B x n_frames x feat
-        '''
-        
-        if 'ssl' in self.mode:
-            spk = self.timbre_head(spk)
-        # 否则直接输入256维的facodec输出
-        if self.use_tfm:
-            x = self.stack(units.transpose(1,2)).transpose(1,2)
-            bs = f0.shape[0]
-            n_frame = f0.shape[1]
-            x = x[:, :n_frame, :]
-            if len(spk.shape) == 1:
-                spk = spk.unsqueeze(0)
-                
-            timbre_embed = self.timbre_extractor(spk)
-            
-            if 'facodec_distill' in self.mode:
-                # timbre_embed = timbre_embed.unsqueeze(0)
-                spk_distill = self.timbre_head1(timbre_embed) # dim: 256->196
-                timbre_embed = self.timbre_head2(spk_distill) # dim: 196->256
-                
-                content_distill = self.ssl_head1(x) # dim: 256->768
-                x = self.ssl_head2(content_distill) # dim: 768->256
-                content_embed = x
-
-            style_embed = spk - timbre_embed
-            timbre_f0 = self.f0_head((1 + f0 / 700).log()) + timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
-            style_id_embed = torch.zeros((bs, n_frame, 256), device=x.device)
-            if 'no_style' not in self.mode:
-                _, length, _ = style_id.size()
-                if length < n_frame:
-                    style_id = repeat_expand_2d(style_id.squeeze(0).T, n_frame).T.unsqueeze(0)
-                else:
-                    style_id = style_id[:, :n_frame, :]
-                
-                style_embs = [
-                    self.control_emb,
-                    self.mix_emb,
-                    self.falsetto_emb,
-                    self.breathy_emb,
-                    self.pharyngeal_emb,
-                    self.glissando_emb,
-                    self.vibrato_emb,
-                ]
-                # 对每个风格特征进行嵌入并相加
-                for i, layer in enumerate(style_embs):
-                    # 获取当前风格特征的索引
-                    style_indices = style_id[:, :, i].long()  # 将值为1的序号映射为0到6
-                    # 获取嵌入结果
-                    embedded = layer(style_indices)
-                    # 将嵌入结果相加
-                    style_id_embed += embedded
-            
-            elif 'add_mlp' in self.mode:
-                condition_style = timbre_f0 \
-                                  + style_embed.unsqueeze(1).expand(-1, n_frame, -1) \
-                                  + self.phase_head(phase / np.pi) \
-                                  + self.volume_head(volume) \
-                                  + style_id_embed
-                x = x + condition_style
-            else:
-                condition_style = torch.concat([
-                        timbre_f0, 
-                        style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
-                        self.phase_head(phase / np.pi), 
-                        self.volume_head(volume)], 
-                        dim=-1)
-                condition_style = self.fuse_conv(condition_style.permute(0,2,1)).permute(0,2,1)
-                x = self.fuse(x, condition_style)
-                
-        else:
-            x = self.stack(units.transpose(1,2)).transpose(1,2)
-            n_frame = f0.shape[1]
-            x = x[:, :n_frame, :]
-            
-            timbre_embed = self.spk_head(spk)
-            # style_embed = None
-            timbre_f0 = self.f0_head((1 + f0 / 700).log()) + timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
-            x = x + timbre_f0 \
-                  + self.phase_head(phase / np.pi) \
-                  + self.volume_head(volume)    
-                    
-        x = self.decoder(x)
-        x = self.norm(x)
-        e = self.dense_out(x)
-        controls = split_to_dict(e, self.output_splits)
-        
-        # if self.use_tfm and not is_infer:
-        #     return controls, x, timbre_embed, mi_loss
-        if 'ortho_loss' in self.mode:
-            return controls, x, content_embed, timbre_embed, content_distill, spk_distill
-        elif 'facodec_distill' in self.mode:
-            return controls, x, timbre_embed, content_distill, spk_distill
-        elif 'adaln_mlp' in self.mode:
-            return controls, x, timbre_f0, timbre_embed, style_embed
-        return controls, x, timbre_embed
     
 # class SALN(nn.Module):
 #     def __init__(self, feature_dim, style_dim):
@@ -3331,6 +2954,74 @@ class ConditionalEncSALayer(nn.Module):
         return x
 
 
+# class AdaIN(torch.nn.Module):
+#     def __init__(self):
+#         super(AdaIN, self).__init__()
+#         # self.h = h
+        
+#         # Part of FACodec decoder
+#         in_channels = 256
+#         # num_mels = 128
+#         self.timbre_linear = nn.Linear(in_channels, in_channels * 2)
+#         self.timbre_linear.bias.data[:in_channels] = 1
+#         self.timbre_linear.bias.data[in_channels:] = 0
+#         self.timbre_norm = nn.LayerNorm(in_channels, elementwise_affine=False)
+        
+#         # Added for match shape  
+#         # self.conv_1 = Conv1d(in_channels, num_mels, 3, 1, padding=1)
+
+#     def forward(self, x, spk_embs=None):    
+#         # Part of FACodec decoder
+#         if len(spk_embs.shape) == 1:
+#             spk_embs = spk_embs.unsqueeze(0)
+#         style = self.timbre_linear(spk_embs).unsqueeze(2)  # (B, 2d, 1)
+#         # if style.shape[1] != 512:
+#         #     return None
+#         gamma, beta = style.chunk(2, 1)  # (B, d, 1)
+#         if x.shape[-1] != 256:
+#             x = x.transpose(1, 2) # (B, d, T) -> (B, T, d)
+#         x = self.timbre_norm(x)
+#         x = x.transpose(1, 2) # (B, T, d) -> (B, d, T)
+#         x = x * gamma + beta
+        
+#         # x = self.conv_1(x)
+#         return x
+
+class AdaIN(nn.Module):
+    def __init__(self, feature_dim=256):
+        super(AdaIN, self).__init__()
+        # 使用两个线性层分别生成 gamma 和 beta
+        self.gamma_fc = nn.Linear(feature_dim, feature_dim)
+        self.beta_fc = nn.Linear(feature_dim, feature_dim)
+        # self.instance_norm = nn.InstanceNorm1d(feature_dim, affine=False)
+        
+    def forward(self, x, condition):
+        """
+        :param x: 输入的特征，形状为 (batch_size, channels, feature_dim)
+        :param condition: 用于控制风格的条件，通常是说话人的嵌入，形状为 (batch_size, feature_dim)
+        :return: 经过自适应实例归一化后的特征
+        """
+        # 计算 gamma 和 beta
+        gamma = self.gamma_fc(condition)  # 形状为 (batch_size, feature_dim)
+        beta = self.beta_fc(condition)    # 形状为 (batch_size, feature_dim)
+        
+        # x = x.transpose(1, 2)  # 转换形状为 (batch_size, feature_dim, channels)
+        # x_norm = self.instance_norm(x)  # InstanceNorm 输出的形状为 (batch_size, feature_dim, channels)
+        # x_norm = x_norm.transpose(1, 2) 
+        
+        # 对输入特征进行 Instance Normalization
+        # 计算每个通道的均值和标准差
+        mean = x.mean(dim=(2), keepdim=True)  # (batch_size, channels, 1)
+        std = x.std(dim=(2), keepdim=True)    # (batch_size, channels, 1)
+
+        # 执行实例归一化
+        x_norm = (x - mean) / (std + 1e-5)  # 防止除以零
+
+        # 通过计算的 gamma 和 beta 对归一化后的特征进行缩放和偏移
+        out = gamma.unsqueeze(2) * x_norm + beta.unsqueeze(2)  # (batch_size, channels, feature_dim)
+
+        return out
+    
 class FramePooling(nn.Module):
     def __init__(self):
         super(FramePooling, self).__init__()
