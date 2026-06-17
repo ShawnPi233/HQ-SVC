@@ -3188,11 +3188,12 @@ def infonce_loss(spk_embeddings, spk_ids, temperature=0.1, supervised=True):
     ref: https://github.com/arashkhoeini/infonce/blob/main/infonce/infonce.py
     Compute InfoNCE loss for speaker embeddings.
     
-    :param spk_embeddings: Tensor of shape [batch_size, embed_dim].
+    :param spk_embeddings: Tensor of shape [batch_size, embed_dim] or [batch_size, T, embed_dim].
     :param spk_ids: Tensor of shape [batch_size], speaker IDs.
     :return: InfoNCE loss (scalar).
     """
-    # Normalize embeddings to unit vectors
+    if spk_embeddings.dim() == 3:
+        spk_embeddings = spk_embeddings.mean(dim=1)
     spk_embeddings = F.normalize(spk_embeddings, p=2, dim=1)
 
     # Compute pairwise cosine similarity
@@ -3924,8 +3925,6 @@ class ControlSVC_v1(torch.nn.Module):
             ddsp_mel = vocoder.extract(ddsp_wav)
         else:
             ddsp_mel = None
-        if gt_spec is not None:
-            gt_spec = gt_spec.permute(0, 2, 1)
             
         if not infer:
             ddsp_loss = F.mse_loss(ddsp_mel, gt_spec)
@@ -3959,12 +3958,13 @@ class ControlSVC_v1(torch.nn.Module):
                 spk_loss = torch.tensor(0.).to(device)
             
             if 'pred_f0' in self.mode:
-                log_f0_pred_mu, log_f0_pred_var = self.f0_predictor(timbre)
+                f0_t = timbre.mean(dim=1) if timbre.dim() == 3 else timbre
+                log_f0_pred_mu, log_f0_pred_var = self.f0_predictor(f0_t)
                 f0_loss = get_f0_loss(spk, log_f0_pred_mu, log_f0_pred_var, f0.unsqueeze(-1))
                 
             else:
                 f0_loss = torch.tensor(0.).to(device)
-                
+            
             if self.use_mi_loss is None or not self.use_mi_loss:
                 mi_loss = torch.tensor(0.).to(device)
             
