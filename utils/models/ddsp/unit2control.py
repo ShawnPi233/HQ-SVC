@@ -3113,7 +3113,9 @@ class Unit2ControlFacV6_beta(nn.Module):
                 content_embed = x
 
             style_embed = spk - timbre_embed
-            timbre_f0 = self.f0_head((1 + f0 / 700).log()) + timbre_embed.unsqueeze(1).expand(-1, n_frame, -1) 
+            if timbre_embed.dim() == 2:
+                timbre_embed = timbre_embed.unsqueeze(1).expand(-1, n_frame, -1)
+            timbre_f0 = self.f0_head((1 + f0 / 700).log()) + timbre_embed
             style_id_embed = torch.zeros((bs, n_frame, 256), device=x.device)
             if 'no_style' not in self.mode:
                 _, length, _ = style_id.size()
@@ -3148,9 +3150,11 @@ class Unit2ControlFacV6_beta(nn.Module):
                                   + style_id_embed
                 x = x + condition_style
             else:
+                if style_embed.dim() == 2:
+                    style_embed = style_embed.unsqueeze(1).expand(-1, n_frame, -1)
                 condition_style = torch.concat([
                         timbre_f0, 
-                        style_embed.unsqueeze(1).expand(-1, n_frame, -1), 
+                        style_embed,
                         self.phase_head(phase / np.pi), 
                         self.volume_head(volume)], 
                         dim=-1)

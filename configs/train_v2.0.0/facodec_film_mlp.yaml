@@ -1,28 +1,16 @@
-# Resume training from an existing full checkpoint.
-# Keep mode aligned with HQ-SVC: InfoNCE + FiLM + FACodec distillation.
-
 # env
 model_name: v2.0.0
 device: 'cuda'
 gpu_ids: '0'
 num_gpus: 1
 
-# Content Encoder (none for FACodec)
-content_encoder: 'contentvec768l12'
-cnhubertsoft_gate: 10
-encoder_sample_rate: 16000
-encoder_hop_size: 320
-encoder_out_channels: 768
-encoder_ckpt: pretrain/contentvec/checkpoint_best_legacy_500.pt
-speaker_encoder: 'campp'
-
 # training settings
 data_path: 'data/singing_filelist'
 file_list_path: 'data/singing_filelist/singing_train_file_list.txt'
 ckpt_dir: 'results'
 hifigan_config_path: 'configs/hifigan_config.json'
-resume_training: true
-resume_ckpt: 'results/v2.0.0/facodec_distill_film_mlp_ortho/latest.pth'
+resume_training: false
+resume_ckpt: null
 resume_log_dir: null
 finetune_ckpt: null
 save_full_checkpoint: true
@@ -59,16 +47,15 @@ use_style_loss: False
 use_spk_id: True
 use_tfm: True
 use_ssa: False
-mode: [film_mlp, infonce, pred_f0, facodec_distill, no_style, ortho_loss]
+mode: [film_mlp, infonce, pred_f0, no_style]
 
-guidance_scale: null
-drop_rate: 0.0
-model_paths: null
-
-# diffusion
+# diffussion
 k_step_max: 100
 infer_speedup: 10
 infer_method: 'dpm-solver'
+guidance_scale: null
+drop_rate: 0.0
+model_paths: null
 
 # logging settings
 num_log_audio: 5
